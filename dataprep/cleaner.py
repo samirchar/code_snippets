@@ -169,6 +169,17 @@ class FuzzyCorrector:
             return None anyway ("not a good enough match").
         :type score_cutoff: int
         """
+        dataframe[column] = dataframe[column].fillna('<NAN>')
+        strs2match = dataframe[column].tolist()
+
+        max_pool = mp.cpu_count()
+        func = partial(self.single_fuzzy_corrector,
+                       available_categories, score_cutoff)
+        with mp.Pool(processes=max_pool) as pool:
+            corrected_values = pool.map(func, strs2match)
+        dataframe.drop([column], axis=1, inplace=True)
+        dataframe[column] = corrected_values
+
     def transform(self, dataframe):
         """Corrects entries of the dataframe from the columns specified in the corrector.
         
