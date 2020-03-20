@@ -5,6 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 from fuzzywuzzy.process import extractOne
+from fuzzywuzzy import fuzz
 from unidecode import unidecode
 
 
@@ -125,7 +126,7 @@ class FuzzyCorrector:
         """
         self.corrector = corrector
 
-    def single_fuzzy_corrector(self, available_categories, score_cutoff, str2match, return_score = False):
+    def single_fuzzy_corrector(self, available_categories, score_cutoff, str2match, return_score = False, scorer = fuzz.WRatio):
         """Function that corrects values with typos in
         categorical variables. Given a list of posible categories
         the function evaluates the similarity of 'str2match' to this 
@@ -148,7 +149,8 @@ class FuzzyCorrector:
             return np.nan
         else:
             cat = extractOne(str2match, available_categories,
-                                 score_cutoff=score_cutoff)
+                                 score_cutoff=score_cutoff,
+                                    scorer = scorer)
             if cat:
                 if return_score:
                     return cat[0],cat[1]
