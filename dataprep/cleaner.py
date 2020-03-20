@@ -125,7 +125,7 @@ class FuzzyCorrector:
         """
         self.corrector = corrector
 
-    def single_fuzzy_corrector(self, available_categories, score_cutoff, str2match):
+    def single_fuzzy_corrector(self, available_categories, score_cutoff, str2match, return_score = False):
         """Function that corrects values with typos in
         categorical variables. Given a list of posible categories
         the function evaluates the similarity of 'str2match' to this 
@@ -150,7 +150,10 @@ class FuzzyCorrector:
             cat = extractOne(str2match, available_categories,
                                  score_cutoff=score_cutoff)
             if cat:
-                return cat[0]
+                if return_score:
+                    return cat[0],cat[1]
+                else:
+                    return cat[0]
             else:
                 return np.nan
 
@@ -169,6 +172,8 @@ class FuzzyCorrector:
             return None anyway ("not a good enough match").
         :type score_cutoff: int
         """
+        assert isinstance(self.corrector,dict), "To use this function, corrector must be a dict"
+        
         dataframe[column] = dataframe[column].fillna('<NAN>')
         strs2match = dataframe[column].tolist()
 
