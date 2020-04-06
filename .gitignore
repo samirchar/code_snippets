@@ -7,7 +7,7 @@ __pycache__/
 *.so
 
 #stanford_corenlp
-#*/stanford_corenlp
+*/stanford_corenlp
 
 #DSstore
 .DS_Store
