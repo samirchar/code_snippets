@@ -83,7 +83,7 @@ class AwesomeLabelEncoder:
             lambda x: self.encoder[x.name].inverse_transform( x.astype(int) ))
         return data
         
-def cyclical_encoding(df, col, max_val):
+def cyclical_encoding(df, col, max_val, min_val = 1):
     """Encoding of cyclical features using sine and cosine transformation.
     Examples of cyclical features are: hour of day, month, day of week.
     The variable must be a numeric integer starting from 0.
@@ -94,15 +94,15 @@ def cyclical_encoding(df, col, max_val):
     :type col: str
     :param max_val: The maximum value the variable can have. e.g. in hour of day, max value = 23
     :type max_val: int
-    :return: dataframe with three new variables: sine and cosine of the features + the multiplication
-    of these two columns
+    :param min_val: The minimum value the variable can have. e.g. in hour of day, min value = 1, defaults to 1
+    :type min_val: int
+    :return: dataframe with three new variables: sine and cosine of the features + the multiplicationof these two columns
     :rtype: :py:class:`pandas.DataFrame`
     """
 
     data = df.copy()
 
-    data[col] = data[col] - min(data[col])
-    data[col] = data[col] - min(data[col])
+    data[col] = data[col] - min_val #ensure min value is 0
     data[col + '_sin'] = np.sin(2 * np.pi * data[col] / max_val)
     data[col + '_cos'] = np.cos(2 * np.pi * data[col] / max_val)
     data[col + '_sin_cos_cross'] = data[col + '_sin'] * data[col + '_cos']

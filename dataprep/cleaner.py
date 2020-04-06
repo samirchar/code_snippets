@@ -1,12 +1,18 @@
-from collections import defaultdict
-from functools import partial
+
+import string
 import multiprocessing as mp
-from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 from fuzzywuzzy.process import extractOne
+from fuzzywuzzy import fuzz
 from unidecode import unidecode
-
+from nltk.tokenize import word_tokenize 
+from nltk.corpus import stopwords 
+from nltk.tag import pos_tag
+from collections import defaultdict
+from functools import partial
+from sklearn.preprocessing import LabelEncoder
+stop = stopwords.words('english')
 
 class ReduceLevels:
     """Class that reduces the levels in a categorical variable by applying
@@ -125,7 +131,7 @@ class FuzzyCorrector:
         """
         self.corrector = corrector
 
-    def single_fuzzy_corrector(self, available_categories, score_cutoff, str2match):
+    def single_fuzzy_corrector(self, available_categories, score_cutoff, str2match, return_score = False, scorer = fuzz.WRatio):
         """Function that corrects values with typos in
         categorical variables. Given a list of posible categories
         the function evaluates the similarity of 'str2match' to this 
@@ -148,9 +154,13 @@ class FuzzyCorrector:
             return np.nan
         else:
             cat = extractOne(str2match, available_categories,
-                                 score_cutoff=score_cutoff)
+                                 score_cutoff=score_cutoff,
+                                    scorer = scorer)
             if cat:
-                return cat[0]
+                if return_score:
+                    return cat[0],cat[1]
+                else:
+                    return cat[0]
             else:
                 return np.nan
 
@@ -169,6 +179,19 @@ class FuzzyCorrector:
             return None anyway ("not a good enough match").
         :type score_cutoff: int
         """
+        assert isinstance(self.corrector,dict), "To use this function, corrector must be a dict"
+        
+        dataframe[column] = dataframe[column].fillna('<NAN>')
+        strs2match = dataframe[column].tolist()
+
+        max_pool = mp.cpu_count()
+        func = partial(self.single_fuzzy_corrector,
+                       available_categories, score_cutoff)
+        with mp.Pool(processes=max_pool) as pool:
+            corrected_values = pool.map(func, strs2match)
+        dataframe.drop([column], axis=1, inplace=True)
+        dataframe[column] = corrected_values
+
     def transform(self, dataframe):
         """Corrects entries of the dataframe from the columns specified in the corrector.
         
@@ -230,4 +253,50 @@ def normalize_str_cols(df,include_cols = None, exclude_cols = None):
     df_2[str_cols] = df_2[str_cols].apply(lambda x: x.str.strip())
     
     return df_2
+    
+def remove_stopwords(word_list):
+    return [word for word in word_list if word not in stop]
+        
+def build_vocab(sentences):
+    """
+    :param sentences: list of list of words
+    :return: dictionary of words and their count
+    """
+    vocab = {}
+    for sentence in sentences:
+        for word in sentence:
+            try:
+                vocab[word] += 1
+            except KeyError:
+                vocab[word] = 1
+    return vocab
 
+def count_characters_in_tokenized_sentence(sentence,tokenized = True):
+    num_characters = 0
+    if not tokenized:
+        sentence = word_tokenize(sentence)
+    for word in sentence:
+        num_characters+=len(word)
+    return num_characters
+
+def count_punctuations_in_tokenized_sentece(sentence, except_ = ['!'],tokenized = True):
+    if not tokenized:
+        sentence = word_tokenize(sentence)
+    punctuations_to_check = [i for i in string.punctuation if i not in except_]
+    punctuations = 0
+    for word in sentence:
+        for ch in word:
+            if ch in punctuations_to_check:
+                punctuations+=1
+    return punctuations
+
+def count_ner_tags_in_tokenized_sentence(sentence,tag,tokenized = True):
+    if not tokenized:
+        sentence = word_tokenize(sentence)
+    count = 0
+    tags = [i[1] for i in pos_tag(sentence,tagset = 'universal') ]
+    count = 0
+    for t in tags:
+        if t == tag:
+            count+=1
+    return count
