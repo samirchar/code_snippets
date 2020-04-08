@@ -1,4 +1,8 @@
 # code_snippets
+
+PLEASE FOLLOW INSTRUCTIONS on https://stanfordnlp.github.io/CoreNLP/download.html
+to get latest version of stanford_corenlp
+
 Different modules for miscellaneous tasks. In this way I avoid rewriting code.
 
 dataprep: contains modules for common tasks such as reducing the number of levels of categorical variables with high cardinality, correcting typos in categorical (text) variables using fuzzy matching, etc...
