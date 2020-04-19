@@ -20,7 +20,6 @@ def sentences_to_indices(X, word_to_index: np.array, max_len: int)->np.array:
     
     for i in range(m):                               # loop over training examples
         
-        # Convert the ith training sentence in lower case and split is into words. You should get a list of words.
         sentence_words = X[i]
                 
         # Loop over the words of sentence_words
