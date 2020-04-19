@@ -8,8 +8,8 @@ __pycache__/
 
 #stanford_corenlp
 */stanford_corenlp/*
-!*/stanford_corenlp/utils.py
-!*/stanford_corenlp/__init__.py
+*!/stanford_corenlp/utils.py
+*!/stanford_corenlp/__init__.py
 
 #DSstore
 .DS_Store
