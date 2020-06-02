@@ -147,8 +147,8 @@ class BidirectionalLSTM(Trainer):
             loss="binary_crossentropy", metrics=[f1_metric], optimizer=opt
         )
 
-    def save_model(self):
-        pass
+    def save_model(self,file_path):
+        self.model.save(file_path)
 
     def fit_model(
         self,
@@ -220,9 +220,7 @@ class BidirectionalLSTM(Trainer):
 
         if loss < min_loss:
             print(f"Found new best model with loss {loss}... Saving model.")
-            self.model.save(
-                os.path.join(full_export_directory, "model.h5")
-            )  # save best to disc and overwrite metric
+            self.save_model(os.path.join(full_export_directory,"model.h5")) # save best to disc and overwrite metric
             with open(metric_file_name, "w") as f:
                 f.write(str(loss))
         sys.stdout.flush()
@@ -327,8 +325,8 @@ class LstmCnn(Trainer):
         self.model.compile(loss='binary_crossentropy',metrics = [f1_metric],optimizer=opt)
     
 
-    def save_model(self):
-        pass
+    def save_model(self,file_path):
+        self.model.save(file_path)
     
 
     def fit_model(self,epochs,batch_size,use_early_stopping = True,monitor = 'val_f1_metric',patience = 15, min_delta = 1e-4):
@@ -396,7 +394,7 @@ class LstmCnn(Trainer):
 
         if loss < min_loss:
             print(f"Found new best model with loss {loss}... Saving model.")
-            self.model.save(os.path.join(full_export_directory,"model.h5"))  # save best to disc and overwrite metric
+            self.save_model(os.path.join(full_export_directory,"model.h5"))  # save best to disc and overwrite metric
             with open(metric_file_name, "w") as f:
                 f.write(str(loss))
         sys.stdout.flush() 
