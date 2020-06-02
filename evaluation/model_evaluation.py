@@ -3,6 +3,7 @@ from scikitplot.metrics import plot_lift_curve,plot_cumulative_gain, plot_precis
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import tensorflow.keras.backend as K
 
 class classification_report:
     
@@ -61,3 +62,30 @@ class classification_report:
         lift = plot_lift_curve(self.y_test, y_pred_proba_both_classes, title='Lift curve')
         plt.show()
                 
+
+def plot_metrics(history,metric='f1',higher_is_better = True,linestyle = '-',ylim = (0,1)):
+    
+    try:
+        history = history.history
+    except:
+        pass
+    
+    metrics = [ i for i in history.keys() if metric in i]
+    losses = [ i for i in history.keys() if 'loss' in i]        
+    for m in metrics:
+        h = np.array(history[m])
+        if higher_is_better:
+            h = 1 - h
+        ax = plt.plot(h ,label = m, color = 'green' if 'val' in m else 'blue',linestyle=linestyle)
+    plt.legend()
+    ymin,ymax = ylim
+    plt.ylim(ymin,ymax)
+
+def f1_metric(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    recall = true_positives / (possible_positives + K.epsilon())
+    f1_val = 2*(precision*recall)/(precision+recall+K.epsilon())
+    return f1_val
