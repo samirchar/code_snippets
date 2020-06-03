@@ -1,12 +1,13 @@
 import os
+import sys
+sys.path.append(os.path.abspath(".."))
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials, space_eval
 from hyperopt.pyll.stochastic import sample
 from functools import partial
 from glob import glob
 import re
 import numpy as np
-from src.code_snippets.utils.data_handler import read_pickle, save_to_pickle
-
+from utils.data_handler import read_pickle, save_to_pickle
 
 def extract_trial_results(x, space):
     experiment = space_eval(
@@ -32,7 +33,7 @@ class safeHyperopt:
         model_name,
         total_trials=50,
         init_max_trials=11,
-        export_directory="../../models/"
+        export_directory="../../../models/"
         
     ):
 

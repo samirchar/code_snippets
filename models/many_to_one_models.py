@@ -5,9 +5,9 @@ from hyperopt.pyll.stochastic import sample
 from functools import partial
 from glob import glob
 import re
+sys.path.append(os.path.abspath(".."))
 
-
-from src.code_snippets.evaluation.model_evaluation import plot_metrics, f1_metric
+from evaluation.model_evaluation import plot_metrics, f1_metric
 import tensorflow.keras.backend as K
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import (
@@ -27,16 +27,15 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import Model
 from tensorflow.keras.backend import clear_session
-from src.code_snippets.utils.abstract_classes import Trainer
-from src.code_snippets.dataprep.embeddings_preprocessing.glove.reader import (
+from utils.abstract_classes import Trainer
+from dataprep.embeddings_preprocessing.glove.reader import (
     read_glove_file,
     get_word_index_dicts,
 )
-from src.code_snippets.dataprep.embeddings_preprocessing.data_preparation import (
+from dataprep.embeddings_preprocessing.data_preparation import (
     pretrained_embedding_layer,
 )
-from src.code_snippets.models.hyperparameter_tuning import safeHyperopt
-
+from models.hyperparameter_tuning import safeHyperopt
 
 class BidirectionalLSTM(Trainer):
     def __init__(self, train_data, val_data, embedding_dir, model=None):
@@ -174,8 +173,8 @@ class BidirectionalLSTM(Trainer):
             epochs=epochs,
             batch_size=batch_size,
             shuffle=True,
-            validation_data=[self.val_data["X_indices"], self.val_data["y"]],
-            verbose=1,
+            validation_data=(self.val_data["X_indices"], self.val_data["y"]),
+            verbose=0,
             callbacks=[self.early_stopping] if use_early_stopping else None,
         )
 
@@ -191,7 +190,7 @@ class BidirectionalLSTM(Trainer):
 
     def hyperopt_model(self, params: dict, verbose: int = 0):
         # Set output dir
-        export_directory = "../../models/"
+        export_directory = "../../../models/"
         full_export_directory = os.path.join(export_directory, self.model_name)
 
         clear_session()
@@ -205,6 +204,9 @@ class BidirectionalLSTM(Trainer):
             hidden_dense_units=params["hidden_dense_units"],
             learning_rate=params["learning_rate"],
             bidirectional=params["bidirectional"],
+            global_max_pool=params["global_max_pool"],
+            global_avg_pool=params["global_avg_pool"]
+
         )
         self.fit_model(batch_size=params["batch_size"], epochs=params["epochs"])
 
@@ -216,7 +218,7 @@ class BidirectionalLSTM(Trainer):
             with open(metric_file_name) as f:
                 min_loss = float(f.read().strip())  # read best metric,
         except FileNotFoundError:
-            min_loss = 1000  # else just use current value as the best
+            min_loss = 100.0  # else just use current value as the best
 
         if loss < min_loss:
             print(f"Found new best model with loss {loss}... Saving model.")
@@ -336,14 +338,14 @@ class LstmCnn(Trainer):
                                                          patience = patience,
                                                          mode = 'max',
                                                          restore_best_weights = True,
-                                                         verbose = 0)
+                                                         verbose = 1)
 
         self.history = self.model.fit(self.train_data['X_indices'],
                                        self.train_data['y'],
                                        epochs=epochs,
                                        batch_size=batch_size,
                                        shuffle=True,
-                                       validation_data = [self.val_data['X_indices'],self.val_data['y']],
+                                       validation_data = (self.val_data['X_indices'],self.val_data['y']),
                                        verbose = 0,
                                        callbacks=[self.early_stopping] if use_early_stopping else None)
 
