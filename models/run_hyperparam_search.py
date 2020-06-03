@@ -29,7 +29,7 @@ load_dotenv(dotenv_path)
 
 import random
 import matplotlib.pyplot as plt
-from models.data_handler import read_pickle,save_to_pickle
+from utils.data_handler import read_pickle,save_to_pickle
 from models.many_to_one_models import *
 from models.hyperparameter_tuning import safeHyperopt,extract_trial_results
 from hyperopt import hp, space_eval
