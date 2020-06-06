@@ -80,12 +80,12 @@ if __name__ == "__main__":
     #Define search space. TODO: Define this dictionary through external json file
     space = {   'n_units': hp.choice('n_units',2**np.arange(6,9,dtype=int)),
                 'add_recurrent_layer': True,
-                'dropout': hp.choice('dropout', np.arange(.3,0.6,0.1)),
-                'spatial_dropout':hp.choice('spatial_dropout',np.arange(.3,.6,.1)),
-                'hidden_dense_units': hp.choice('use_dense',[0,hp.choice('hidden_dense_units',2**np.arange(4,8))]),
-                'batch_size' :hp.choice('batch_size',2**np.arange(5,8,dtype=int)),
+                'dropout': hp.choice('dropout', np.arange(.2,0.6,0.1)),
+                'spatial_dropout':hp.choice('spatial_dropout',np.arange(.2,.6,.1)),
+                'hidden_dense_units': hp.choice('hidden_dense_units',np.append([0],2**np.arange(4,8,dtype=int))),
+                'batch_size' :128,
                 'epochs' : 100, 
-                'learning_rate':10**hp.uniform('learning_rate',-4,-2.3),
+                'learning_rate':10**hp.uniform('learning_rate',-3.5,-2.3),
                 'bidirectional':True,
                 'global_max_pool':hp.choice('global_max_pool',[True,False]),
                 'global_avg_pool':hp.choice('global_avg_pool',[True,False])

@@ -32,7 +32,7 @@ class safeHyperopt:
         version,
         model_name,
         total_trials=50,
-        init_max_trials=11,
+        init_max_trials=3,
         export_directory="../../../models/"
         
     ):
@@ -66,7 +66,7 @@ class safeHyperopt:
     def run_trials(self, verbose: bool = True):
 
         trials_step = 1  # how many additional trials to do after loading saved trials. 1 = save after iteration
-        n_startup_jobs = 10
+        n_startup_jobs = 2
 
         try:  # try to load an already saved trials object, and increase the max
             trials = read_pickle(

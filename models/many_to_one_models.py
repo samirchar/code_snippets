@@ -174,7 +174,7 @@ class BidirectionalLSTM(Trainer):
             batch_size=batch_size,
             shuffle=True,
             validation_data=(self.val_data["X_indices"], self.val_data["y"]),
-            verbose=0,
+            verbose=1,
             callbacks=[self.early_stopping] if use_early_stopping else None,
         )
 
