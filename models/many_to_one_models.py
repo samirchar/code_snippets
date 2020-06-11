@@ -240,7 +240,6 @@ class BidirectionalLSTM(Trainer):
             model_name = self.model_name,
             total_trials=total_trials,
         )
-
         shp.run_train_loop()
 
 class LstmCnn(Trainer):
