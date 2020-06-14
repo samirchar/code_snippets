@@ -23,6 +23,7 @@ from tensorflow.keras.layers import (
     Bidirectional,
     SpatialDropout1D,
     concatenate,
+    Add
 )
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import Model
@@ -36,6 +37,7 @@ from dataprep.embeddings_preprocessing.data_preparation import (
     pretrained_embedding_layer,
 )
 from models.hyperparameter_tuning import safeHyperopt
+from models.custom_keras_layers import InceptionModule
 
 class BidirectionalLSTM(Trainer):
     def __init__(self, train_data, val_data, embedding_dir, model=None):
@@ -408,4 +410,184 @@ class LstmCnn(Trainer):
                             model_name = self.model_name,
                             total_trials = total_trials)
 
+        shp.run_train_loop()
+
+
+#Inception Time
+class InceptionTime(Trainer):
+    def __init__(self, train_data, val_data, embedding_dir, model=None):
+
+        self.train_data = train_data
+        self.val_data = val_data
+        self.embedding_dir = embedding_dir
+        self.gensim_model = read_glove_file(self.embedding_dir)
+        self.word_to_index, self.index_to_words = get_word_index_dicts(
+            self.gensim_model
+        )
+
+        self.m_X, self.n_X = self.train_data["X_indices"].shape
+        self.m_X_aux, self.n_X_aux = self.train_data["X_aux"].shape
+
+        self.model = model
+        self.model_name = type(self).__name__
+        self.shortcut_counter=1
+
+    def shortcut_layer(self,inputs, Z_inception):
+
+        Z_shortcut = Conv1D(filters = int(Z_inception.shape[-1]),
+                            kernel_size=1,
+                            padding='same',
+                            name = f'shortcut_conv_{self.shortcut_counter}')(inputs)
+
+        Z_shortcut = BatchNormalization(name=f'shortcut_bn_{self.shortcut_counter}')(Z_shortcut)
+        Z_shortcut = Activation(activation='relu',name=f'shortcut_act_{self.shortcut_counter}')(Z_shortcut)
+
+        Z = Add()([Z_shortcut,Z_inception])
+        
+        self.shortcut_counter+=1
+        
+        return Z
+
+    def set_model(
+        self,
+        spatial_dropout=0,
+        learning_rate=0.01,
+        seed=100,
+        num_modules = 6
+    ):
+
+        # Input layer
+        sentence_indices = Input((self.n_X), dtype="int32")
+
+        # Embedding Layer
+        embedding_layer = pretrained_embedding_layer(
+            self.gensim_model, self.word_to_index
+        )
+
+        # Propagate sentence_indices through your embedding layer
+        embeddings = embedding_layer(sentence_indices)
+        embeddings = SpatialDropout1D(spatial_dropout, seed=seed)(embeddings)
+
+        Z = embeddings
+        Z_residual = embeddings
+
+        for i in range(num_modules):
+            Z = InceptionModule()(Z)
+            if i % 3 == 2:
+                Z = self.shortcut_layer(Z_residual,Z)
+                Z_residual = Z
+        Z = GlobalAveragePooling1D()(Z)
+
+        # Hiden Dense Layer 1
+        '''
+        X = Dense(hidden_dense_units)(X)
+        X = BatchNormalization()(X)
+        X = Activation(activation="relu")(X)
+        X = Dropout(dropout, seed=seed)(X)
+        '''
+
+        # Output layer
+        X = Dense(1, activation="sigmoid")(Z)
+
+        self.model = Model(sentence_indices, X)
+
+        opt = Adam(learning_rate=learning_rate)
+        self.model.compile(
+            loss="binary_crossentropy", metrics=[f1_metric], optimizer=opt
+        )
+
+    def save_model(self,file_path):
+        self.model.save(file_path)
+
+    def fit_model(
+        self,
+        epochs,
+        batch_size,
+        use_early_stopping=True,
+        monitor="val_f1_metric",
+        patience=15,
+        min_delta=1e-4,
+    ):
+        self.early_stopping = EarlyStopping(
+            monitor=monitor,
+            min_delta=min_delta,
+            patience=patience,
+            mode="max",
+            restore_best_weights=True,
+            verbose=1,
+        )
+
+        self.history = self.model.fit(
+            self.train_data["X_indices"],
+            self.train_data["y"],
+            epochs=epochs,
+            batch_size=batch_size,
+            shuffle=True,
+            validation_data=(self.val_data["X_indices"], self.val_data["y"]),
+            verbose=1,
+            callbacks=[self.early_stopping] if use_early_stopping else None,
+        )
+
+    def generate_metrics(self, X_test, y_test, metric="f1_score"):
+
+        y_test = y_test.astype("float32")
+        y_pred = self.model.predict(X_test)
+
+        if metric == "f1_score":
+            score = f1_metric(y_test, y_pred).numpy()
+
+        return score
+
+    def hyperopt_model(self, params: dict, verbose: int = 0):
+        # Set output dir
+        export_directory = "../../../models/"
+        full_export_directory = os.path.join(export_directory, self.model_name)
+
+        clear_session()
+        print(params)
+
+        self.set_model(
+            n_units=params["n_units"],
+            add_recurrent_layer=params["add_recurrent_layer"],
+            dropout=params["dropout"],
+            spatial_dropout=params["spatial_dropout"],
+            hidden_dense_units=params["hidden_dense_units"],
+            learning_rate=params["learning_rate"],
+            bidirectional=params["bidirectional"],
+            global_max_pool=params["global_max_pool"],
+            global_avg_pool=params["global_avg_pool"]
+
+        )
+        self.fit_model(batch_size=params["batch_size"], epochs=params["epochs"])
+
+        loss = 1 - self.early_stopping.best
+
+        # Keep log of best loss and save the corresponding model
+        metric_file_name = os.path.join(full_export_directory, "metric.txt")
+        try:
+            with open(metric_file_name) as f:
+                min_loss = float(f.read().strip())  # read best metric,
+        except FileNotFoundError:
+            min_loss = 100.0  # else just use current value as the best
+
+        if loss < min_loss:
+            print(f"Found new best model with loss {loss}... Saving model.")
+            self.save_model(os.path.join(full_export_directory,"model.h5")) # save best to disc and overwrite metric
+            with open(metric_file_name, "w") as f:
+                f.write(str(loss))
+        sys.stdout.flush()
+        return {
+            "loss": loss,
+            "status": STATUS_OK,
+            "model_history": self.history.history,
+        }
+
+    def search_hyperparameters(self, space, version, total_trials):
+        shp = safeHyperopt(
+            model=self.hyperopt_model,
+            space=space,
+            version=version,
+            model_name = self.model_name,
+            total_trials=total_trials,
+        )
         shp.run_train_loop()
