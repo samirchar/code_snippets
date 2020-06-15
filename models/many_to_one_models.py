@@ -478,9 +478,9 @@ class InceptionTime(Trainer):
         for i in range(num_modules):
             Z = InceptionModule()(Z)
             if i % 3 == 2:
+                Z = self.shortcut_layer(Z_residual,Z)
                 if (max_pool)&(i==2):
                     Z = MaxPool1D()(Z)
-                Z = self.shortcut_layer(Z_residual,Z)
                 Z_residual = Z
                 
                 
