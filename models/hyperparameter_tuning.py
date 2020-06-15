@@ -49,7 +49,7 @@ class safeHyperopt:
         )
 
         if not os.path.exists(self.full_export_directory):
-            os.mkdir(self.full_export_directory)
+            os.makedirs(self.full_export_directory)
 
         save_to_pickle(
             self.space,
