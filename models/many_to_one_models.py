@@ -23,8 +23,10 @@ from tensorflow.keras.layers import (
     Bidirectional,
     SpatialDropout1D,
     concatenate,
-    Add
+    Add,
+    MaxPool1D
 )
+
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import Model
 from tensorflow.keras.backend import clear_session
@@ -450,10 +452,12 @@ class InceptionTime(Trainer):
 
     def set_model(
         self,
-        spatial_dropout=0,
+        dropout = 0.4,
+        spatial_dropout=0.5,
         learning_rate=0.01,
-        seed=100,
-        num_modules = 6
+        max_pool = False,
+        num_modules = 6,
+        seed=100
     ):
 
         # Input layer
@@ -474,18 +478,16 @@ class InceptionTime(Trainer):
         for i in range(num_modules):
             Z = InceptionModule()(Z)
             if i % 3 == 2:
+                if (max_pool)&(i==2):
+                    Z = MaxPool1D()(Z)
                 Z = self.shortcut_layer(Z_residual,Z)
                 Z_residual = Z
+                
+                
         Z = GlobalAveragePooling1D()(Z)
-
-        # Hiden Dense Layer 1
-        '''
-        X = Dense(hidden_dense_units)(X)
-        X = BatchNormalization()(X)
-        X = Activation(activation="relu")(X)
-        X = Dropout(dropout, seed=seed)(X)
-        '''
-
+        
+        Z = Dropout(dropout)(Z)
+        
         # Output layer
         X = Dense(1, activation="sigmoid")(Z)
 
@@ -547,15 +549,11 @@ class InceptionTime(Trainer):
         print(params)
 
         self.set_model(
-            n_units=params["n_units"],
-            add_recurrent_layer=params["add_recurrent_layer"],
             dropout=params["dropout"],
             spatial_dropout=params["spatial_dropout"],
-            hidden_dense_units=params["hidden_dense_units"],
             learning_rate=params["learning_rate"],
-            bidirectional=params["bidirectional"],
-            global_max_pool=params["global_max_pool"],
-            global_avg_pool=params["global_avg_pool"]
+            max_pool=params["max_pool"],
+            num_modules=params["num_modules"]
 
         )
         self.fit_model(batch_size=params["batch_size"], epochs=params["epochs"])

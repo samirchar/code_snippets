@@ -50,8 +50,8 @@ if __name__ == "__main__":
     parser.add_argument("--processed_data_path", type=str, default="../../../data/processed")
     parser.add_argument("--raw_data_path", type=str, default="../../../data/raw")
     parser.add_argument("--interim_data_path", type=str, default="../../../data/interim")
-
-
+    parser.add_argument("--embedding_path", type=str,default="../../../data/raw/pretrained_embeddings/glove.twitter.27B/glove.twitter.27B.200d.txt")
+        
     args = parser.parse_args()
 
     #Import data
@@ -68,27 +68,28 @@ if __name__ == "__main__":
     if args.model_name == "BidirectionalLSTM":
         trainer = BidirectionalLSTM(train_data,
                                     val_data,
-                                    "../../../data/raw/pretrained_embeddings/glove.twitter.27B/glove.twitter.27B.200d.txt")
+                                    args.embedding_path)
 
     elif args.model_name == "LstmCnn":
         trainer = LstmCnn(train_data,
                                     val_data,
-                                    "../../../data/raw/pretrained_embeddings/glove.twitter.27B/glove.twitter.27B.200d.txt")
+                                    args.embedding_path)
+    
+    elif args.model_name == "InceptionTime":
+        trainer = InceptionTime(train_data,
+                                    val_data,
+                                    args.embedding_path)
     else:
         print("model_name specificied does not exist")
 
+        
     #Define search space. TODO: Define this dictionary through external json file
-    space = {   'n_units': hp.choice('n_units',2**np.arange(6,9,dtype=int)),
-                'add_recurrent_layer': True,
-                'dropout': hp.choice('dropout', np.arange(.3,0.6,0.1)),
-                'spatial_dropout':hp.choice('spatial_dropout',np.arange(.4,.6,.1)),
-                'hidden_dense_units': hp.choice('hidden_dense_units',np.append([0],2**np.arange(4,8,dtype=int))),
-                'batch_size' :2**9,
-                'epochs' : 100, 
+    space = {  
+                'dropout': hp.choice('dropout', np.arange(.1,0.6,0.1)),
+                'spatial_dropout':hp.choice('spatial_dropout',np.arange(.1,.6,.1)),
+                'batch_size' :2**hp.choice('batch_size', np.arange(.1,0.6,0.1)),
+                'epochs' : 100,
                 'learning_rate':10**hp.uniform('learning_rate',-3.1,-2.3),
-                'bidirectional':True,
-                'global_max_pool':hp.pchoice('global_max_pool',[(0.45,True),(0.55,False)]),
-                'global_avg_pool':hp.pchoice('global_avg_pool',[(0.45,True),(0.55,False)])
             }
 
     #Start Hyperparameter search
