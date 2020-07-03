@@ -5,8 +5,8 @@ from tensorflow.keras.layers import (Conv1D,MaxPool1D,Layer,BatchNormalization,A
 from tensorflow.nn import relu
 
 class InceptionModule(Layer):
-    def __init__(self,num_filters=32,activation='relu',**kwargs):
-        super(InceptionModule,self).__init__(**kwargs)
+    def __init__(self,num_filters=32,**kwargs):
+        super().__init__(**kwargs)
         
         self.num_filters = num_filters
 
@@ -76,3 +76,13 @@ class InceptionModule(Layer):
         #Layer 3
         Z = Concatenate()([Z1,Z2,Z3,Z4])
         return Z
+    
+    def get_config(self):
+
+        config = super().get_config().copy()
+        config.update({
+            'num_filters':self.num_filters
+            })
+        return config
+    
+        

@@ -85,12 +85,12 @@ if __name__ == "__main__":
         
     #Define search space. TODO: Define this dictionary through external json file
     space = {  
-                'dropout': hp.choice('dropout', np.arange(.1,0.6,0.1)),
-                'spatial_dropout':hp.choice('spatial_dropout',np.arange(.1,.6,.1)),
-                'batch_size' :hp.choice('batch_size', 2**np.arange(5,10,dtype=int)),
+                'dropout': hp.choice('dropout', np.arange(.2,0.6,0.1)),
+                'spatial_dropout':hp.choice('spatial_dropout',np.arange(.2,.6,.1)),
+                'batch_size' :512,
                 'epochs' : 100,
-                'learning_rate':10**hp.uniform('learning_rate',-3.1,-2.3),
-                'num_modules':hp.choice('num_modules',np.arange(3,7,dtype=int)),
+                'learning_rate':10**hp.uniform('learning_rate',-2.3,-1.52),
+                'num_modules':6,
                 'max_pool':hp.choice('max_pool',[True,False])
             }
 
